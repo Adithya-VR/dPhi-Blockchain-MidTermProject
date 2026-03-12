@@ -10,6 +10,52 @@
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
   <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script>
+  <style>
+  body { font-family: Arial, sans-serif; padding: 16px; }
+
+  #zombies {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .zombie-card {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 12px;
+    background: #fff;
+  }
+
+  .zombie-card h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+  }
+
+  .zombie-card ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .zombie-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    cursor: pointer;
+    padding: 6px 10px;
+  }
+
+  #txStatus {
+    margin-bottom: 10px;
+    padding: 8px;
+    background: #f5f5f5;
+    border-radius: 8px;
+  }
+</style>
 </head>
 
 <body>
@@ -24,6 +70,8 @@
 
     var cryptoZombies;
     var userAccount;
+    var listenersInitialized = false;
+    let renderNonce = 0;
     const showZombieButton = document.querySelector('.showZombieButton');
     const createzombieButton = document.querySelector('.createzombieButton');
     const levelupButton = document.querySelector('.levelupButton');
@@ -34,6 +82,34 @@
       var cryptoZombiesAddress = "0x5faC8C6dd4908fFD2C675fd5791b109B4E28D989";
 
       cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
+      
+      // Adding listners intialized
+      if (!listenersInitialized) {
+    listenersInitialized = true;
+    setupEventListeners();
+  }
+
+      //Auto UI refresh with events
+      // Auto-refresh when a new zombie is created
+//cryptoZombies.events.NewZombie({ fromBlock: "latest" })
+  //.on("data", function (event) {
+    //console.log("NewZombie:", event.returnValues);
+    //getZombiesByOwner(userAccount).then(displayZombies);
+  //})
+  //.on("error", console.error);
+
+// Auto-refresh when ownership changes (Transfer event)
+//cryptoZombies.events.Transfer({ fromBlock: "latest" })
+  //.on("data", function (event) {
+    //const { from, to } = event.returnValues;
+    //if (
+      //from?.toLowerCase() === userAccount.toLowerCase() ||
+      //to?.toLowerCase() === userAccount.toLowerCase()
+    //) {
+      //getZombiesByOwner(userAccount).then(displayZombies);
+    //}
+  //})
+  //.on("error", console.error);
 
 
  //the following code from Lesson 6, chapter 5 is obsolete
@@ -47,37 +123,82 @@
       //  }
      // }, 100);
 
-      cryptoZombies.events.Transfer({ filter: { _to: userAccount } })
-        .on("data", function (event) {
-          let data = event.returnValues;
-          getZombiesByOwner(userAccount).then(displayZombies);
-        }).on("error", console.error);
+     // Added new event listner hence commenting this as this will fire up multipletimes
+     // cryptoZombies.events.Transfer({ filter: { _to: userAccount } })
+      //  .on("data", function (event) {
+       //   let data = event.returnValues;
+        //  getZombiesByOwner(userAccount).then(displayZombies);
+        //}).on("error", console.error);
     }
 
-    function displayZombies(ids) {
-      $("#zombies").empty();
-      for (let id of ids) {
+  function setupEventListeners() {
+  // ensure contract is ready
+  if (!cryptoZombies) return;
 
-        getZombieDetails(id)
-          .then(function (zombie) {
+  // NewZombie event -> refresh entire list
+  cryptoZombies.events.NewZombie({ fromBlock: "latest" })
+    .on("data", function (event) {
+      console.log("NewZombie:", event.returnValues);
+      getZombiesByOwner(userAccount).then(displayZombies);
+    })
+    .on("error", console.error);
 
-
-            $("#zombies").append(`<div class="zombie">
-              <ul>
-                <li>Name: ${zombie.name}</li>
-                <li>DNA: ${zombie.dna}</li>
-                <li>Level: ${zombie.level}</li>
-                <li>Wins: ${zombie.winCount}</li>
-                <li>Losses: ${zombie.lossCount}</li>
-                <li>Ready Time: ${zombie.readyTime}</li>
-                
-              </ul>
-              <button onclick="levelUp(${id})">Level Up #${id}</button>
-            </div>`);
-          });
+  // Transfer event -> refresh only if current user was involved
+  cryptoZombies.events.Transfer({ fromBlock: "latest" })
+    .on("data", function (event) {
+      const from = event.returnValues.from;
+      const to = event.returnValues.to;
+      if (
+        (from && from.toLowerCase() === userAccount.toLowerCase()) ||
+        (to && to.toLowerCase() === userAccount.toLowerCase())
+      ) {
+        getZombiesByOwner(userAccount).then(displayZombies);
       }
+    })
+    .on("error", console.error);
+}
 
-    }
+function displayZombies(ids) {
+  // bump nonce for this render run
+  const myNonce = ++renderNonce;
+
+  // clear existing cards before rendering
+  $("#zombies").empty();
+
+  // if no ids, nothing to show
+  if (!ids || ids.length === 0) {
+    $("#zombies").append("<div>No zombies found.</div>");
+    return;
+  }
+
+  for (let id of ids) {
+    getZombieDetails(id)
+      .then(function (zombie) {
+        // if a newer render has started, abort this append
+        if (myNonce !== renderNonce) return;
+
+        $("#zombies").append(`
+  <div class="zombie-card">
+    <h3>Zombie #${id} — Level ${zombie.level}</h3>
+    <ul>
+      <li><b>Name:</b> ${zombie.name}</li>
+      <li><b>DNA:</b> ${zombie.dna}</li>
+      <li><b>Wins:</b> ${zombie.winCount}</li>
+      <li><b>Losses:</b> ${zombie.lossCount}</li>
+      <li><b>Ready Time:</b> ${zombie.readyTime}</li>
+    </ul>
+
+    <div class="zombie-actions">
+      <button onclick="levelUp(${id})">Level Up</button>
+    </div>
+  </div>
+`);
+      })
+      .catch(err => {
+        console.error("Error loading zombie details for id", id, err);
+      });
+  }
+}
 
     function createRandomZombie(name) {
 
