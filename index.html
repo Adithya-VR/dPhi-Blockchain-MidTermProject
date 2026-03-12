@@ -30,8 +30,8 @@
 
     function startApp() {
 	
-      //ZombieOwnership contratc address
-      var cryptoZombiesAddress = "0xCb74bDb18F5C623C624f0570F2a37EBF1750F7DB";
+      //ZombieOwnership contract address
+      var cryptoZombiesAddress = "0x5faC8C6dd4908fFD2C675fd5791b109B4E28D989";
 
       cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
 
@@ -56,7 +56,7 @@
 
     function displayZombies(ids) {
       $("#zombies").empty();
-      for (id of ids) {
+      for (let id of ids) {
 
         getZombieDetails(id)
           .then(function (zombie) {
@@ -70,7 +70,9 @@
                 <li>Wins: ${zombie.winCount}</li>
                 <li>Losses: ${zombie.lossCount}</li>
                 <li>Ready Time: ${zombie.readyTime}</li>
+                
               </ul>
+              <button onclick="levelUp(${id})">Level Up #${id}</button>
             </div>`);
           });
       }
@@ -194,11 +196,12 @@
 
     });
 
-    levelupButton.addEventListener('click', () => {
-      getZombiesByOwner(userAccount)
-            .then(levelUp);
-
-    });
+    levelupButton.addEventListener('click', async () => {
+  const ids = await getZombiesByOwner(userAccount);
+  if (!ids.length) return $("#txStatus").text("No zombies to level up");
+  const lastId = ids[ids.length - 1];
+  levelUp(lastId).on("receipt", () => getZombiesByOwner(userAccount).then(displayZombies));
+});
 
 
 
