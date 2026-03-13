@@ -9,7 +9,6 @@
   <script language="javascript" type="text/javascript"
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
-  <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script>
   <style>
   body { font-family: Arial, sans-serif; padding: 16px; }
 
@@ -76,12 +75,26 @@
     const createzombieButton = document.querySelector('.createzombieButton');
     const levelupButton = document.querySelector('.levelupButton');
 
-    function startApp() {
-	
-      //ZombieOwnership contract address
-      var cryptoZombiesAddress = "0x5faC8C6dd4908fFD2C675fd5791b109B4E28D989";
+    async function loadCryptoZombiesContract() {
+      const networkId = await web3.eth.net.getId();
+      const response = await fetch("./build/contracts/ZombieOwnership.json");
 
-      cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
+      if (!response.ok) {
+        throw new Error("Could not load ZombieOwnership artifact. Serve the project from the repo root.");
+      }
+
+      const artifact = await response.json();
+      const deployment = artifact.networks[String(networkId)];
+
+      if (!deployment || !deployment.address) {
+        throw new Error(`ZombieOwnership is not deployed on network ${networkId}. Run truffle migrate on this network first.`);
+      }
+
+      return new web3.eth.Contract(artifact.abi, deployment.address);
+    }
+
+    async function startApp() {
+      cryptoZombies = await loadCryptoZombiesContract();
 
       // Adding listners intialized
       if (!listenersInitialized) {
@@ -273,9 +286,10 @@ function getZombieImage(dna, id) {
             const accounts = await ethereum.enable();
             // Acccounts now exposed
             userAccount = accounts[0];
-            startApp()
+            await startApp()
         } catch (error) {
             // User denied account access...
+            $("#txStatus").text(error.message || String(error));
         }
     }
     // Legacy dapp browsers...
@@ -283,7 +297,7 @@ function getZombieImage(dna, id) {
         window.web3 = new Web3(web3.currentProvider);
         // Acccounts always exposed
         userAccount = web3.eth.accounts[0];
-        startApp()
+        await startApp()
     }
     // Non-dapp browsers...
     else {
@@ -306,13 +320,15 @@ function getZombieImage(dna, id) {
 
   //  }) 
 
-   ethereum.on('accountsChanged', (accounts) => {
-       window.location.reload();
-   });
+   if (window.ethereum) {
+     ethereum.on('accountsChanged', () => {
+         window.location.reload();
+     });
 
-   ethereum.on('chainChanged', (chainId) => {
-       window.location.reload(); 
-   });  
+     ethereum.on('chainChanged', () => {
+         window.location.reload(); 
+     });
+   }
 
  
     createzombieButton.addEventListener('click', () => {
