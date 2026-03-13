@@ -82,7 +82,7 @@
       var cryptoZombiesAddress = "0x5faC8C6dd4908fFD2C675fd5791b109B4E28D989";
 
       cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
-      
+
       // Adding listners intialized
       if (!listenersInitialized) {
     listenersInitialized = true;
@@ -158,7 +158,12 @@
     .on("error", console.error);
 }
 
-function displayZombies(ids) {
+//Zombies Images
+function getZombieImage(dna, id) {
+  const n = 5; // number of images (z0.png to z4.png)
+  const idx = (Number(dna) + Number(id)) % n;
+  return `images/z${idx}.png`;
+}function displayZombies(ids) {
   // bump nonce for this render run
   const myNonce = ++renderNonce;
 
@@ -180,6 +185,9 @@ function displayZombies(ids) {
         $("#zombies").append(`
   <div class="zombie-card">
     <h3>Zombie #${id} — Level ${zombie.level}</h3>
+    <img src="${getZombieImage(zombie.dna,id)}"
+     alt="zombie"
+     style="width:100%; max-width:220px; border-radius:8px; margin:8px 0;" />
     <ul>
       <li><b>Name:</b> ${zombie.name}</li>
       <li><b>DNA:</b> ${zombie.dna}</li>
@@ -237,6 +245,7 @@ function displayZombies(ids) {
         .send({ from: userAccount, value: web3.utils.toWei("0.001", "ether") })
         .on("receipt", function (receipt) {
           $("#txStatus").text("Power overwhelming! Zombie successfully leveled up");
+          getZombiesByOwner(userAccount).then(displayZombies); // ✅ refresh
         })
         .on("error", function (error) {
           $("#txStatus").text(error);
@@ -307,10 +316,9 @@ function displayZombies(ids) {
 
  
     createzombieButton.addEventListener('click', () => {
-      createRandomZombie(userAccount);
-
-    });
-
+  const name = "Zombie-" + Date.now(); // unique name -> unique DNA
+  createRandomZombie(name);
+});
     showZombieButton.addEventListener('click', () => {
       getZombiesByOwner(userAccount)
             .then(displayZombies);
