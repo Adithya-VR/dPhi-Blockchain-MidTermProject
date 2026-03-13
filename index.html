@@ -9,7 +9,7 @@
   <script language="javascript" type="text/javascript"
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
-  <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script>
+  <!-- <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script> (commented out as added new code to change contract address dynamically) -->
   <style>
   body { font-family: Arial, sans-serif; padding: 16px; }
 
@@ -76,18 +76,45 @@
     const createzombieButton = document.querySelector('.createzombieButton');
     const levelupButton = document.querySelector('.levelupButton');
 
-    function startApp() {
+    //function startApp() {
 	
       //ZombieOwnership contract address
-      var cryptoZombiesAddress = "0x5faC8C6dd4908fFD2C675fd5791b109B4E28D989";
+      //var cryptoZombiesAddress = "0xBb08b62d78392127DE62614eFce2ae69f19D3Cb0";
+      //cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
 
-      cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
+      //commenting the above code and adding new code below to dynamically update contract address from ZombieOwnership.json
+      //below added new code of function startApp till adding listners initialized for dynamic address loading, if removing this code remove the catch block in listners code
+    async function startApp() {
+  try {
+    // 1) Load Truffle artifact (ABI + deployed address map)
+    const res = await fetch("./build/contracts/ZombieOwnership.json");
+    const artifact = await res.json();
 
+    // 2) Detect current network ID (Ganache usually 5777)
+    const networkId = await web3.eth.net.getId();
+    const deployed = artifact.networks[networkId];
+
+    if (!deployed || !deployed.address) {
+      $("#txStatus").text(
+        `ZombieOwnership not deployed on network ${networkId}. Run: truffle migrate --reset`
+      );
+      return;
+    }
+
+    // 3) Create contract instance from ABI + deployed address
+    cryptoZombies = new web3.eth.Contract(artifact.abi, deployed.address);
+
+    $("#txStatus").text(`Connected to ZombieOwnership: ${deployed.address}`);
       // Adding listners intialized
       if (!listenersInitialized) {
     listenersInitialized = true;
     setupEventListeners();
-  }
+  } 
+  } catch (err) {
+    console.error(err);
+    $("#txStatus").text("Failed to load contract artifact. Is http-server running at project root?");
+}
+  
 
       //Auto UI refresh with events
       // Auto-refresh when a new zombie is created
@@ -160,8 +187,9 @@
 
 //Zombies Images
 function getZombieImage(dna, id) {
-  const n = 5; // number of images (z0.png to z4.png)
+  const n = 10; // number of images (z0.png to z9.png)
   const idx = (Number(dna) + Number(id)) % n;
+  //const idx = Number(String(dna).slice(-2)) % n;
   return `images/z${idx}.png`;
 }function displayZombies(ids) {
   // bump nonce for this render run
@@ -273,7 +301,7 @@ function getZombieImage(dna, id) {
             const accounts = await ethereum.enable();
             // Acccounts now exposed
             userAccount = accounts[0];
-            startApp()
+           await startApp() //adding await here for the newly added dyanmic address vode, if that code is removed remove await here.
         } catch (error) {
             // User denied account access...
         }
@@ -283,7 +311,7 @@ function getZombieImage(dna, id) {
         window.web3 = new Web3(web3.currentProvider);
         // Acccounts always exposed
         userAccount = web3.eth.accounts[0];
-        startApp()
+        await startApp() //adding await here for the newly added dyanmic address vode, if that code is removed remove await here.
     }
     // Non-dapp browsers...
     else {

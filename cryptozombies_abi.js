@@ -438,5 +438,4 @@ var cryptoZombiesABI = [
       "name": "OwnershipTransferred",
       "type": "event"
     }
-  ]
-  
+  ];
