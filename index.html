@@ -11,60 +11,279 @@
   <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
   <!-- <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script> (commented out as added new code to change contract address dynamically) -->
   <style>
-  body { font-family: Arial, sans-serif; padding: 16px; }
+  :root{
+    --bg1:#0b1020;
+    --bg2:#0f1a3a;
+    --card:#0f1630cc;
+    --card2:#101a3aee;
+    --stroke:#2b3a78;
+    --text:#e7ecff;
+    --muted:#a9b5ff;
+    --accent:#8a5cff;
+    --accent2:#22e6a8;
+    --warn:#ffcc66;
+    --danger:#ff4d6d;
+    --shadow: 0 20px 60px rgba(0,0,0,.45);
+  }
 
-  #zombies {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 12px;
+  *{ box-sizing:border-box; }
+  body{
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    margin:0;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 700px at 20% 10%, rgba(138,92,255,.25), transparent 60%),
+      radial-gradient(900px 600px at 90% 30%, rgba(34,230,168,.18), transparent 55%),
+      radial-gradient(700px 500px at 30% 85%, rgba(255,77,109,.12), transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+    min-height:100vh;
+    padding:24px;
+  }
+
+  .app{
+    /* max-width:1100px; */
+    margin:0 auto;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:18px 18px;
+    border:1px solid rgba(43,58,120,.7);
+    background: linear-gradient(180deg, rgba(16,26,58,.85), rgba(12,16,32,.75));
+    border-radius:18px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    position:sticky;
+    top:16px;
+    z-index:10;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:260px;
+  }
+
+  .logo{
+    width:44px; height:44px;
+    border-radius:14px;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(34,230,168,.95), rgba(34,230,168,.05) 55%),
+      radial-gradient(circle at 70% 70%, rgba(138,92,255,.95), rgba(138,92,255,.05) 55%),
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow: 0 10px 30px rgba(138,92,255,.18);
+  }
+
+  .brand h1{
+    font-size:16px;
+    margin:0;
+    letter-spacing:.3px;
+    line-height:1.1;
+  }
+
+  .brand p{
+    margin:3px 0 0;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  #txStatus{
+    flex:1;
+    padding:10px 12px;
+    border-radius:14px;
+    background: rgba(15,22,48,.55);
+    border: 1px solid rgba(43,58,120,.6);
+    color: var(--muted);
+    min-height: 42px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+
+  .dot{
+    width:10px; height:10px;
+    border-radius:999px;
+    background: var(--accent2);
+    box-shadow: 0 0 20px rgba(34,230,168,.7);
+    flex:0 0 auto;
+  }
+
+  .actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  button{
+    cursor:pointer;
+    border:1px solid rgba(255,255,255,.14);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:14px;
+    background: rgba(16,26,58,.65);
+    transition: transform .08s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+    font-weight:600;
+    letter-spacing:.2px;
+  }
+
+  button:hover{
+    transform: translateY(-1px);
+    border-color: rgba(138,92,255,.55);
+    box-shadow: 0 14px 30px rgba(0,0,0,.35);
+    background: rgba(20,32,70,.70);
+  }
+
+  button:active{
+    transform: translateY(0);
+    box-shadow:none;
+  }
+
+  .btn-primary{
+    background: linear-gradient(135deg, rgba(138,92,255,.95), rgba(80,210,255,.65));
+    border-color: rgba(138,92,255,.45);
+    box-shadow: 0 12px 34px rgba(138,92,255,.25);
+  }
+
+  .btn-primary:hover{
+    border-color: rgba(255,255,255,.22);
+  }
+
+  .btn-ghost{
+    background: rgba(16,26,58,.35);
+  }
+
+  .btn-warn{
+    background: linear-gradient(135deg, rgba(255,204,102,.95), rgba(255,77,109,.55));
+    border-color: rgba(255,204,102,.45);
+  }
+
+  .grid-wrap{
+    margin-top:16px;
+  }
+
+  #zombies{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap:14px;
+    margin-top:12px;
+  }
+
+  .zombie-card{
+    border: 1px solid rgba(43,58,120,.65);
+    border-radius: 18px;
+    padding: 14px;
+    background: linear-gradient(180deg, rgba(15,22,48,.70), rgba(10,14,28,.55));
+    box-shadow: 0 18px 50px rgba(0,0,0,.40);
+    backdrop-filter: blur(10px);
+    position:relative;
+    overflow:hidden;
+  }
+
+  .zombie-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(400px 140px at 20% 0%, rgba(138,92,255,.18), transparent 60%),
+      radial-gradient(300px 120px at 90% 20%, rgba(34,230,168,.12), transparent 60%);
+    pointer-events:none;
+  }
+
+  .zombie-card h3{
+    margin:0 0 10px 0;
+    font-size:14px;
+    letter-spacing:.3px;
+    color:var(--text);
+    position:relative;
+    z-index:1;
+  }
+
+  .zombie-card ul{
+    margin:10px 0 0;
+    padding-left:18px;
+    color: var(--muted);
+    position:relative;
+    z-index:1;
+  }
+
+  .zombie-card li b{
+    color: var(--text);
+  }
+
+  .zombie-actions{
     margin-top: 12px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    position:relative;
+    z-index:1;
   }
 
-  .zombie-card {
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    padding: 12px;
-    background: #fff;
+  .zombie-actions button{
+    padding:8px 10px;
+    border-radius:12px;
+    font-size:13px;
+    background: rgba(16,26,58,.55);
   }
 
-  .zombie-card h3 {
-    margin: 0 0 8px 0;
-    font-size: 16px;
+  .footer-note{
+    margin-top:16px;
+    color: rgba(169,181,255,.75);
+    font-size:12px;
+    text-align:center;
   }
 
-  .zombie-card ul {
-    margin: 0;
-    padding-left: 18px;
-  }
-
-  .zombie-actions {
-    margin-top: 10px;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  button {
-    cursor: pointer;
-    padding: 6px 10px;
-  }
-
-  #txStatus {
-    margin-bottom: 10px;
-    padding: 8px;
-    background: #f5f5f5;
-    border-radius: 8px;
+  @media (max-width: 680px){
+    .topbar{
+      flex-direction:column;
+      align-items:stretch;
+    }
+    .brand{ min-width:unset; }
+    .actions{ justify-content:stretch; }
+    button{ width:100%; }
   }
 </style>
 </head>
 
 <body>
-  <div id="txStatus"></div>
-  <div id="zombies"></div>
+  <body>
+  <div class="app">
 
-  <button class="showZombieButton">Show Zombies</button>
-  <button class="createzombieButton">Create Zombie</button>
-  <button class="levelupButton">Level Up</button>
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>CryptoZombies</h1>
+          <p>Ganache DApp • funky undead edition</p>
+        </div>
+      </div>
+
+      <div id="txStatus"><span class="dot"></span><span>Ready.</span></div>
+
+      <div class="actions">
+        <button class="showZombieButton btn-ghost">Show Zombies</button>
+        <button class="createzombieButton btn-primary">Create Zombie</button>
+        <button class="levelupButton btn-warn">Level Up</button>
+      </div>
+    </div>
+
+    <div class="grid-wrap">
+      <div id="zombies"></div>
+      <div class="footer-note">
+        Tip: Create a zombie to start building your army. Transfers and events will auto-refresh.
+      </div>
+    </div>
+
+  </div>
 
   <script>
 
