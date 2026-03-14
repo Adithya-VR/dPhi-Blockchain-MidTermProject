@@ -14,6 +14,8 @@ contract ZombieAttack is ZombieHelper {
   function attack(uint _zombieId, uint _targetId) external onlyOwnerOf(_zombieId) {
     Zombie storage myZombie = zombies[_zombieId];
     Zombie storage enemyZombie = zombies[_targetId];
+    require(_zombieId != _targetId, "Cannot attack the same zombie");
+    require(_isReady(enemyZombie), "Target zombie is on cooldown");
     uint rand = randMod(100);
     if (rand <= attackVictoryProbability) {
       myZombie.winCount = myZombie.winCount.add(1);

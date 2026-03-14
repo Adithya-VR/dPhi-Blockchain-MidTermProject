@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoZombies Fight Arena</title>
+  <link rel="icon" href="favicon.ico">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #09111f;
+      --bg-soft: #121d35;
+      --panel: rgba(15, 22, 41, 0.92);
+      --panel-alt: rgba(18, 29, 53, 0.96);
+      --stroke: rgba(102, 136, 255, 0.24);
+      --text: #edf2ff;
+      --muted: #9db0da;
+      --accent: #42d392;
+      --accent-2: #5aa9ff;
+      --danger: #ff6b7d;
+      --warning: #ffd166;
+      --shadow: 0 18px 55px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(90, 169, 255, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(66, 211, 146, 0.14), transparent 26%),
+        linear-gradient(180deg, #060b14 0%, var(--bg) 52%, #08101c 100%);
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 22px;
+      border: 1px solid var(--stroke);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(17, 27, 49, 0.96), rgba(10, 16, 30, 0.94));
+      box-shadow: var(--shadow);
+    }
+
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 28px;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn, .link-btn {
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      padding: 11px 16px;
+      background: var(--panel-alt);
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 600;
+      transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+    }
+
+    .btn:hover, .link-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(90, 169, 255, 0.5);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(66, 211, 146, 0.95), rgba(90, 169, 255, 0.92));
+      color: #07111e;
+      border-color: transparent;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.96), rgba(255, 107, 125, 0.92));
+      color: #161616;
+      border-color: transparent;
+    }
+
+    .status {
+      margin-top: 18px;
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 1.3fr 1fr;
+    }
+
+    .panel {
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .panel h2, .panel h3 {
+      margin-top: 0;
+    }
+
+    .status-line {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      color: var(--muted);
+    }
+
+    .status-badge {
+      min-width: 88px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .status-idle { background: rgba(157, 176, 218, 0.14); color: var(--muted); }
+    .status-pending { background: rgba(255, 209, 102, 0.18); color: var(--warning); }
+    .status-confirmed { background: rgba(66, 211, 146, 0.16); color: var(--accent); }
+    .status-failed { background: rgba(255, 107, 125, 0.18); color: var(--danger); }
+
+    .selection {
+      margin-top: 18px;
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cards {
+      display: grid;
+      gap: 12px;
+      max-height: 520px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .card {
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(18, 29, 53, 0.98), rgba(10, 16, 30, 0.98));
+      padding: 14px;
+      cursor: pointer;
+      color: var(--text);
+      text-align: left;
+      transition: border-color 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(90, 169, 255, 0.45);
+    }
+
+    .card.selected {
+      border-color: rgba(66, 211, 146, 0.92);
+      box-shadow: 0 0 0 1px rgba(66, 211, 146, 0.35);
+    }
+
+    .card.disabled {
+      opacity: 0.58;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(90, 169, 255, 0.14);
+      color: #bfdbff;
+    }
+
+    .tag.cooldown {
+      background: rgba(255, 209, 102, 0.18);
+      color: var(--warning);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .actions-bar {
+      margin-top: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .result-box {
+      margin-top: 18px;
+      white-space: pre-line;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .helper {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 980px) {
+      .status,
+      .selection {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useEffect, useMemo, useState } = React;
+    const { ethers } = window;
+
+    function shortenAddress(address) {
+      if (!address) return "";
+      return address.slice(0, 6) + "..." + address.slice(-4);
+    }
+
+    function formatReadyTime(readyTime) {
+      return new Date(Number(readyTime) * 1000).toLocaleString();
+    }
+
+    function getSecondsUntilReady(readyTime, currentTime) {
+      return Math.max(0, Number(readyTime) - Number(currentTime));
+    }
+
+    function getDisplayZombieName(zombie) {
+      if (!zombie?.name || zombie.name === "NoName" || zombie.name === "Spawnling") {
+        return `Zombie-${(Number(zombie.readyTime) * 1000) + Number(zombie.id)}`;
+      }
+
+      return zombie.name;
+    }
+
+    function getFightSummary(beforeZombie, afterZombie, beforeOwnedIds, afterOwnedIds, receipt) {
+      const winDelta = Number(afterZombie.winCount) - Number(beforeZombie.winCount);
+      const lossDelta = Number(afterZombie.lossCount) - Number(beforeZombie.lossCount);
+      const levelDelta = Number(afterZombie.level) - Number(beforeZombie.level);
+      const newOwnedCount = afterOwnedIds.length - beforeOwnedIds.length;
+      const spawnedZombie = receipt.logs.some((log) => {
+        try {
+          const parsed = log.fragment?.name || "";
+          return parsed === "NewZombie";
+        } catch (err) {
+          return false;
+        }
+      });
+
+      if (winDelta > 0) {
+        return {
+          kind: "victory",
+          message: `Victory. Wins +${winDelta}, level +${levelDelta}.${spawnedZombie || newOwnedCount > 0 ? " A new zombie was created." : ""}`
+        };
+      }
+
+      if (lossDelta > 0) {
+        return {
+          kind: "defeat",
+          message: `Defeat. Losses +${lossDelta}. Your attacker is now on cooldown.`
+        };
+      }
+
+      return {
+        kind: "unknown",
+        message: "Attack confirmed, but no explicit outcome could be inferred from stat changes."
+      };
+    }
+
+    function normaliseZombie(id, details, owner) {
+      return {
+        id: Number(id),
+        owner,
+        name: details.name,
+        dna: details.dna.toString(),
+        level: Number(details.level),
+        readyTime: Number(details.readyTime),
+        winCount: Number(details.winCount),
+        lossCount: Number(details.lossCount),
+      };
+    }
+
+    async function getChainTimestamp(readOnlyContract) {
+      const latestBlock = await readOnlyContract.runner.getBlock("latest");
+      return Number(latestBlock.timestamp);
+    }
+
+    async function getEffectiveTimestamp(readOnlyContract) {
+      const chainTimestamp = await getChainTimestamp(readOnlyContract);
+      const wallClockTimestamp = Math.floor(Date.now() / 1000);
+      return Math.max(chainTimestamp, wallClockTimestamp);
+    }
+
+    function ZombieCard({ zombie, selected, onSelect, selectable, currentTime }) {
+      const displayName = getDisplayZombieName(zombie);
+      const isReady = zombie.readyTime <= currentTime;
+      const secondsUntilReady = getSecondsUntilReady(zombie.readyTime, currentTime);
+
+      return (
+        <button
+          type="button"
+          className={`card ${selected ? "selected" : ""} ${!selectable ? "disabled" : ""}`}
+          onClick={() => {
+            if (!selectable) return;
+            onSelect(zombie);
+          }}
+        >
+          <div className="card-top">
+            <div>
+              <h3 className="card-title">{displayName}</h3>
+              <div className="helper">Zombie #{zombie.id}</div>
+            </div>
+            <span className={`tag ${isReady ? "" : "cooldown"}`}>
+              {isReady ? "Ready" : "Cooldown"}
+            </span>
+          </div>
+
+          <div className="stats">
+            <div>Level: {zombie.level}</div>
+            <div>DNA: {zombie.dna.slice(0, 8)}...</div>
+            <div>Wins: {zombie.winCount}</div>
+            <div>Losses: {zombie.lossCount}</div>
+          </div>
+
+          {!isReady && (
+            <div className="helper" style={{ marginTop: "10px" }}>
+              Ready in {secondsUntilReady}s at {formatReadyTime(zombie.readyTime)}
+            </div>
+          )}
+        </button>
+      );
+    }
+
+    function App() {
+      const [provider, setProvider] = useState(null);
+      const [signer, setSigner] = useState(null);
+      const [contract, setContract] = useState(null);
+      const [walletAddress, setWalletAddress] = useState("");
+      const [ownedZombies, setOwnedZombies] = useState([]);
+      const [enemyZombies, setEnemyZombies] = useState([]);
+      const [selectedAttacker, setSelectedAttacker] = useState(null);
+      const [selectedTarget, setSelectedTarget] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [txStatus, setTxStatus] = useState({ state: "idle", message: "Connect MetaMask to enter the arena." });
+      const [fightResult, setFightResult] = useState("");
+      const [contractAddress, setContractAddress] = useState("");
+      const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000));
+
+      const readyAttacker = useMemo(() => {
+        if (!selectedAttacker) return null;
+        return ownedZombies.find((z) => z.id === selectedAttacker.id) || null;
+      }, [ownedZombies, selectedAttacker]);
+
+      const attackerIsReady = readyAttacker ? readyAttacker.readyTime <= currentTime : false;
+      const targetIsReady = selectedTarget ? selectedTarget.readyTime <= currentTime : false;
+
+      async function buildContract(browserProvider) {
+        const artifactResponse = await fetch("./build/contracts/ZombieOwnership.json");
+
+        if (!artifactResponse.ok) {
+          throw new Error("Could not load build/contracts/ZombieOwnership.json. Serve the app from the project root.");
+        }
+
+        const artifact = await artifactResponse.json();
+        const network = await browserProvider.getNetwork();
+        const networkId = await browserProvider.send("net_version", []);
+        const deployment = artifact.networks[String(networkId)];
+
+        if (!deployment?.address) {
+          throw new Error(
+            `ZombieOwnership is not deployed for Truffle network ${networkId}. MetaMask chain id is ${network.chainId}.`
+          );
+        }
+
+        setContractAddress(deployment.address);
+        return new ethers.Contract(deployment.address, artifact.abi, browserProvider);
+      }
+
+      async function fetchZombieDetails(readOnlyContract, zombieId) {
+        const [details, owner] = await Promise.all([
+          readOnlyContract.zombies(zombieId),
+          readOnlyContract.zombieToOwner(zombieId),
+        ]);
+
+        return normaliseZombie(zombieId, details, owner);
+      }
+
+      async function loadZombieLists(activeContract, activeWallet) {
+        const effectiveTime = await getEffectiveTimestamp(activeContract);
+        setCurrentTime(effectiveTime);
+        const ownedIdsRaw = await activeContract.getZombiesByOwner(activeWallet);
+        const ownedIds = ownedIdsRaw.map((id) => Number(id));
+
+        const creationEvents = await activeContract.queryFilter(activeContract.filters.NewZombie(), 0, "latest");
+        const allZombieIds = [...new Set(creationEvents.map((event) => Number(event.args.zombieId)))];
+
+        const zombieRecords = await Promise.all(
+          allZombieIds.map((zombieId) => fetchZombieDetails(activeContract, zombieId))
+        );
+
+        const owned = zombieRecords.filter((zombie) => zombie.owner.toLowerCase() === activeWallet.toLowerCase());
+        const enemies = zombieRecords.filter((zombie) => zombie.owner.toLowerCase() !== activeWallet.toLowerCase());
+
+        setOwnedZombies(owned.sort((a, b) => a.id - b.id));
+        setEnemyZombies(enemies.sort((a, b) => a.id - b.id));
+
+        setSelectedAttacker((previous) => {
+          if (!previous) return null;
+          return owned.find((z) => z.id === previous.id) || null;
+        });
+
+        setSelectedTarget((previous) => {
+          if (!previous) return null;
+          return enemies.find((z) => z.id === previous.id) || null;
+        });
+
+        return { ownedIds, zombies: zombieRecords };
+      }
+
+      async function connectWallet() {
+        if (!window.ethereum) {
+          setTxStatus({ state: "failed", message: "MetaMask was not detected in this browser." });
+          return;
+        }
+
+        try {
+          setLoading(true);
+          setFightResult("");
+          const browserProvider = new ethers.BrowserProvider(window.ethereum);
+          await browserProvider.send("eth_requestAccounts", []);
+          const activeSigner = await browserProvider.getSigner();
+          const account = await activeSigner.getAddress();
+          const readOnlyContract = await buildContract(browserProvider);
+
+          setProvider(browserProvider);
+          setSigner(activeSigner);
+          setContract(readOnlyContract);
+          setWalletAddress(account);
+          setTxStatus({ state: "pending", message: "Wallet connected. Loading zombies from the blockchain..." });
+
+          await loadZombieLists(readOnlyContract, account);
+          setTxStatus({ state: "confirmed", message: "Arena synced. Select your attacker and target." });
+        } catch (error) {
+          setTxStatus({ state: "failed", message: error.message || "Failed to connect wallet." });
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      async function refreshData() {
+        if (!contract || !walletAddress) return;
+
+        setLoading(true);
+        try {
+          await loadZombieLists(contract, walletAddress);
+        } catch (error) {
+          setTxStatus({ state: "failed", message: error.message || "Failed to refresh zombie data." });
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      async function handleAttack() {
+        if (!contract || !signer || !readyAttacker || !selectedTarget) return;
+        const chainTime = await getEffectiveTimestamp(contract);
+        const freshAttacker = await fetchZombieDetails(contract, readyAttacker.id);
+        const freshTarget = await fetchZombieDetails(contract, selectedTarget.id);
+
+        if (freshAttacker.readyTime > chainTime || freshTarget.readyTime > chainTime) {
+          await loadZombieLists(contract, walletAddress);
+          setTxStatus({
+            state: "failed",
+            message: freshAttacker.readyTime > chainTime
+              ? `Attacker zombie is on cooldown until ${formatReadyTime(freshAttacker.readyTime)}.`
+              : `Target zombie is on cooldown until ${formatReadyTime(freshTarget.readyTime)}.`,
+          });
+          return;
+        }
+
+        try {
+          setLoading(true);
+          setFightResult("");
+          setTxStatus({
+            state: "pending",
+            message: `Submitting attack from zombie #${readyAttacker.id} to zombie #${selectedTarget.id}...`,
+          });
+
+          const writableContract = contract.connect(signer);
+          const beforeAttacker = await contract.zombies(readyAttacker.id);
+          const beforeOwnedIdsRaw = await contract.getZombiesByOwner(walletAddress);
+          const beforeOwnedIds = beforeOwnedIdsRaw.map((id) => Number(id));
+
+          const tx = await writableContract.attack(readyAttacker.id, selectedTarget.id);
+          setTxStatus({
+            state: "pending",
+            message: `Transaction pending: ${tx.hash}`,
+          });
+
+          const receipt = await tx.wait();
+          const afterAttacker = await contract.zombies(readyAttacker.id);
+          const afterOwnedIdsRaw = await contract.getZombiesByOwner(walletAddress);
+          const afterOwnedIds = afterOwnedIdsRaw.map((id) => Number(id));
+          const result = getFightSummary(beforeAttacker, afterAttacker, beforeOwnedIds, afterOwnedIds, receipt);
+
+          await loadZombieLists(contract, walletAddress);
+
+          setFightResult(result.message);
+          setTxStatus({
+            state: "confirmed",
+            message: `Attack confirmed in block ${receipt.blockNumber}.`,
+          });
+        } catch (error) {
+          setTxStatus({
+            state: "failed",
+            message: error.shortMessage || error.reason || error.message || "Attack transaction failed.",
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      useEffect(() => {
+        const intervalId = window.setInterval(() => {
+          setCurrentTime(Math.floor(Date.now() / 1000));
+        }, 1000);
+
+        return () => window.clearInterval(intervalId);
+      }, []);
+
+      useEffect(() => {
+        if (!window.ethereum) return;
+
+        function handleAccountsChanged(accounts) {
+          if (!accounts.length) {
+            setWalletAddress("");
+            setContract(null);
+            setSigner(null);
+            setOwnedZombies([]);
+            setEnemyZombies([]);
+            setSelectedAttacker(null);
+            setSelectedTarget(null);
+            setTxStatus({ state: "idle", message: "Wallet disconnected." });
+            return;
+          }
+          connectWallet();
+        }
+
+        function handleChainChanged() {
+          connectWallet();
+        }
+
+        window.ethereum.on("accountsChanged", handleAccountsChanged);
+        window.ethereum.on("chainChanged", handleChainChanged);
+
+        return () => {
+          window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+          window.ethereum.removeListener("chainChanged", handleChainChanged);
+        };
+      }, [contract]);
+
+      const attackDisabled =
+        loading ||
+        !readyAttacker ||
+        !selectedTarget ||
+        !attackerIsReady ||
+        !targetIsReady;
+
+      return (
+        <div className="page">
+          <div className="hero">
+            <div>
+              <h1>Fight Arena</h1>
+              <p>Pick your zombie, choose a target, and battle in the arena.</p>
+            </div>
+
+            <div className="hero-actions">
+              <a className="link-btn" href="./index.html">Main App</a>
+              <button className="btn btn-primary" onClick={connectWallet} disabled={loading}>
+                {walletAddress ? "Reconnect Wallet" : "Connect MetaMask"}
+              </button>
+            </div>
+          </div>
+
+          <div className="status">
+            <section className="panel">
+              <h2>Wallet</h2>
+              <div className="helper">
+                {walletAddress
+                  ? <>Connected account: <span className="mono">{walletAddress}</span></>
+                  : "No wallet connected yet."}
+              </div>
+              <div className="helper" style={{ marginTop: "10px" }}>
+                {contractAddress
+                  ? <>Contract: <span className="mono">{contractAddress}</span></>
+                  : "Contract not loaded yet."}
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2>Transaction Status</h2>
+              <div className="status-line">
+                <span className={`status-badge status-${txStatus.state}`}>{txStatus.state}</span>
+                <div>{txStatus.message}</div>
+              </div>
+              {fightResult && <div className="result-box">{fightResult}</div>}
+            </section>
+          </div>
+
+          <div className="selection">
+            <section className="panel">
+              <h2>Your Zombies</h2>
+              <div className="helper">Choose an owned zombie that is ready to attack.</div>
+              <div className="cards" style={{ marginTop: "14px" }}>
+                {ownedZombies.length === 0 && <div className="helper">No owned zombies found for this wallet.</div>}
+                {ownedZombies.map((zombie) => (
+                  <ZombieCard
+                    key={zombie.id}
+                    zombie={zombie}
+                    selected={selectedAttacker?.id === zombie.id}
+                    selectable={zombie.readyTime <= currentTime}
+                    currentTime={currentTime}
+                    onSelect={setSelectedAttacker}
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2>Enemy Zombies</h2>
+              <div className="helper">Choose an enemy zombie that is ready to fight.</div>
+              <div className="cards" style={{ marginTop: "14px" }}>
+                {enemyZombies.length === 0 && <div className="helper">No enemy zombies available on this network yet.</div>}
+                {enemyZombies.map((zombie) => (
+                  <ZombieCard
+                    key={zombie.id}
+                    zombie={zombie}
+                    selected={selectedTarget?.id === zombie.id}
+                    selectable={zombie.readyTime <= currentTime}
+                    currentTime={currentTime}
+                    onSelect={setSelectedTarget}
+                  />
+                ))}
+              </div>
+            </section>
+          </div>
+
+          <section className="panel" style={{ marginTop: "18px" }}>
+            <h2>Attack Controls</h2>
+            <div className="helper">
+              Selected attacker: {selectedAttacker ? `#${selectedAttacker.id} ${getDisplayZombieName(selectedAttacker)}` : "none"}
+            </div>
+            <div className="helper">
+              Selected target: {selectedTarget ? `#${selectedTarget.id} ${getDisplayZombieName(selectedTarget)}` : "none"}
+            </div>
+
+            <div className="actions-bar">
+              <button className="btn btn-danger" onClick={handleAttack} disabled={attackDisabled}>
+                {loading ? "Working..." : "Attack"}
+              </button>
+              <button className="btn" onClick={refreshData} disabled={loading || !contract}>
+                Refresh Zombies
+              </button>
+            </div>
+
+            {readyAttacker && !attackerIsReady && (
+              <div className="result-box">
+                The selected attacker is on cooldown until {formatReadyTime(readyAttacker.readyTime)}.
+              </div>
+            )}
+
+            {selectedTarget && !targetIsReady && (
+              <div className="result-box">
+                The selected target is on cooldown until {formatReadyTime(selectedTarget.readyTime)}.
+              </div>
+            )}
+          </section>
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
