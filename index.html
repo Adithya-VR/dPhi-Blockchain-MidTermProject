@@ -176,6 +176,59 @@
     margin-top:16px;
   }
 
+  .account-banner{
+    margin-bottom:14px;
+    padding:12px 14px;
+    border: 1px solid rgba(43,58,120,.65);
+    border-radius: 16px;
+    background: rgba(16,26,58,.45);
+    color: var(--muted);
+  }
+
+  .account-banner b{
+    color: var(--text);
+  }
+
+  .control-panel{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap:12px;
+    margin-bottom:14px;
+    padding:14px;
+    border: 1px solid rgba(43,58,120,.65);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(15,22,48,.70), rgba(10,14,28,.55));
+    box-shadow: 0 18px 50px rgba(0,0,0,.40);
+  }
+
+  .control-field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .control-field label{
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .control-field input,
+  .control-field select{
+    width:100%;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(16,26,58,.65);
+    color: var(--text);
+  }
+
+  .control-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+  }
+
   #zombies{
     display:grid;
     grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
@@ -285,6 +338,29 @@
     </div>
 
     <div class="grid-wrap">
+      <div id="accountBanner" class="account-banner">
+        <b>Connected Wallet:</b> <span id="connectedWalletText">Not connected yet.</span>
+      </div>
+      <div class="control-panel">
+        <div class="control-field">
+          <label for="actionZombieId">Selected Zombie</label>
+          <select id="actionZombieId">
+            <option value="">Load your zombies first</option>
+          </select>
+        </div>
+        <div class="control-field">
+          <label for="approveAddress">Approve Address</label>
+          <input id="approveAddress" type="text" placeholder="0x..." />
+        </div>
+        <div class="control-field">
+          <label for="transferAddress">Transfer To</label>
+          <input id="transferAddress" type="text" placeholder="0x..." />
+        </div>
+        <div class="control-actions">
+          <button id="approveButton" class="btn-ghost">Approve</button>
+          <button id="transferButton" class="btn-warn">Transfer</button>
+        </div>
+      </div>
       <div id="zombies"></div>
       <div class="footer-note">
         Tip: Create a zombie to start building your army. Transfers and events will auto-refresh.
@@ -302,6 +378,12 @@
     const showZombieButton = document.querySelector('.showZombieButton');
     const createzombieButton = document.querySelector('.createzombieButton');
     const levelupButton = document.querySelector('.levelupButton');
+    const approveButton = document.getElementById('approveButton');
+    const transferButton = document.getElementById('transferButton');
+    const actionZombieIdSelect = document.getElementById('actionZombieId');
+    const approveAddressInput = document.getElementById('approveAddress');
+    const transferAddressInput = document.getElementById('transferAddress');
+    const connectedWalletText = document.getElementById('connectedWalletText');
 
     //function startApp() {
 	
@@ -331,6 +413,7 @@
     // 3) Create contract instance from ABI + deployed address
     cryptoZombies = new web3.eth.Contract(artifact.abi, deployed.address);
 
+    connectedWalletText.textContent = userAccount || "Not connected yet.";
     $("#txStatus").text(`Connected to ZombieOwnership: ${deployed.address}`);
       // Adding listners intialized
       if (!listenersInitialized) {
@@ -431,6 +514,7 @@ function getDisplayZombieName(zombie, id) {
 function displayZombies(ids) {
   // bump nonce for this render run
   const myNonce = ++renderNonce;
+  populateActionZombieOptions(ids);
 
   // clear existing cards before rendering
   $("#zombies").empty();
@@ -471,6 +555,27 @@ function displayZombies(ids) {
       .catch(err => {
         console.error("Error loading zombie details for id", id, err);
       });
+  }
+}
+
+function populateActionZombieOptions(ids) {
+  const previousValue = actionZombieIdSelect.value;
+  actionZombieIdSelect.innerHTML = "";
+
+  if (!ids || !ids.length) {
+    actionZombieIdSelect.innerHTML = '<option value="">No zombies available</option>';
+    return;
+  }
+
+  for (const id of ids) {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = `Zombie #${id}`;
+    actionZombieIdSelect.appendChild(option);
+  }
+
+  if (ids.includes(previousValue) || ids.includes(Number(previousValue))) {
+    actionZombieIdSelect.value = previousValue;
   }
 }
 
@@ -518,6 +623,31 @@ function displayZombies(ids) {
         });
     }
 
+    function approveZombie(zombieId, approvedAddress) {
+      $("#txStatus").text("Approving address to manage your zombie...");
+      return cryptoZombies.methods.approve(approvedAddress, zombieId)
+        .send({ from: userAccount })
+        .on("receipt", function () {
+          $("#txStatus").text(`Approved ${approvedAddress} for Zombie #${zombieId}.`);
+        })
+        .on("error", function (error) {
+          $("#txStatus").text(error.message || String(error));
+        });
+    }
+
+    function transferZombie(zombieId, toAddress) {
+      $("#txStatus").text("Transferring zombie...");
+      return cryptoZombies.methods.transferFrom(userAccount, toAddress, zombieId)
+        .send({ from: userAccount })
+        .on("receipt", function () {
+          $("#txStatus").text(`Transferred Zombie #${zombieId} to ${toAddress}.`);
+          getZombiesByOwner(userAccount).then(displayZombies);
+        })
+        .on("error", function (error) {
+          $("#txStatus").text(error.message || String(error));
+        });
+    }
+
     function getZombieDetails(id) {
       return cryptoZombies.methods.zombies(id).call()
     }
@@ -555,6 +685,7 @@ function displayZombies(ids) {
     // Non-dapp browsers...
     else {
         console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+        connectedWalletText.textContent = "MetaMask not detected.";
     }
    });
  
@@ -599,6 +730,22 @@ function displayZombies(ids) {
   if (!ids.length) return $("#txStatus").text("No zombies to level up");
   const lastId = ids[ids.length - 1];
   levelUp(lastId).on("receipt", () => getZombiesByOwner(userAccount).then(displayZombies));
+});
+
+    approveButton.addEventListener('click', async () => {
+  const zombieId = actionZombieIdSelect.value;
+  const approvedAddress = approveAddressInput.value.trim();
+  if (!zombieId) return $("#txStatus").text("Select a zombie to approve.");
+  if (!web3.utils.isAddress(approvedAddress)) return $("#txStatus").text("Enter a valid approval address.");
+  approveZombie(zombieId, approvedAddress);
+});
+
+    transferButton.addEventListener('click', async () => {
+  const zombieId = actionZombieIdSelect.value;
+  const toAddress = transferAddressInput.value.trim();
+  if (!zombieId) return $("#txStatus").text("Select a zombie to transfer.");
+  if (!web3.utils.isAddress(toAddress)) return $("#txStatus").text("Enter a valid transfer address.");
+  transferZombie(zombieId, toAddress);
 });
 
 
