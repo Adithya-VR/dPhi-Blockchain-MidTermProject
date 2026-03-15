@@ -372,6 +372,7 @@
   <script>
 
     var cryptoZombies;
+    var kittyContract;
     var userAccount;
     var listenersInitialized = false;
     let renderNonce = 0;
@@ -398,10 +399,13 @@
     // 1) Load Truffle artifact (ABI + deployed address map)
     const res = await fetch("./build/contracts/ZombieOwnership.json");
     const artifact = await res.json();
+    const kittyRes = await fetch("./build/contracts/KittyContract.json");
+    const kittyArtifact = await kittyRes.json();
 
     // 2) Detect current network ID (Ganache usually 5777)
     const networkId = await web3.eth.net.getId();
     const deployed = artifact.networks[networkId];
+    const kittyDeployed = kittyArtifact.networks[networkId];
 
     if (!deployed || !deployed.address) {
       $("#txStatus").text(
@@ -410,8 +414,16 @@
       return;
     }
 
+    if (!kittyDeployed || !kittyDeployed.address) {
+      $("#txStatus").text(
+        `KittyContract not deployed on network ${networkId}. Run: truffle migrate --reset`
+      );
+      return;
+    }
+
     // 3) Create contract instance from ABI + deployed address
     cryptoZombies = new web3.eth.Contract(artifact.abi, deployed.address);
+    kittyContract = new web3.eth.Contract(kittyArtifact.abi, kittyDeployed.address);
 
     connectedWalletText.textContent = userAccount || "Not connected yet.";
     $("#txStatus").text(`Connected to ZombieOwnership: ${deployed.address}`);
@@ -503,12 +515,40 @@ function getZombieImage(dna, id) {
   return `images/z${idx}.png`;
 }
 
+function getKittyImage(kittyId) {
+  return `images/c${kittyId}.png`;
+}
+
 function getDisplayZombieName(zombie, id) {
   if (!zombie?.name || zombie.name === "NoName" || zombie.name === "Spawnling") {
     return `Zombie-${(Number(zombie.readyTime) * 1000) + Number(id)}`;
   }
 
   return zombie.name;
+}
+
+function getZombieImagePath(zombie, id) {
+  if (zombie.isKittyHybrid && zombie.fedKittyId !== null && zombie.fedKittyId !== undefined) {
+    return getKittyImage(zombie.fedKittyId);
+  }
+
+  return getZombieImage(zombie.dna, id);
+}
+
+async function getZombieViewModel(id) {
+  const [zombie, isKittyHybrid, fedKittyId] = await Promise.all([
+    getZombieDetails(id),
+    cryptoZombies.methods.zombieIsKittyHybrid(id).call(),
+    cryptoZombies.methods.zombieToSourceKitty(id).call()
+  ]);
+  const hybrid = isKittyHybrid === true || isKittyHybrid === "true";
+
+  return {
+    ...zombie,
+    isKittyHybrid: hybrid,
+    fedKittyId: hybrid ? Number(fedKittyId) : null,
+    imagePath: hybrid ? getKittyImage(Number(fedKittyId)) : getZombieImage(zombie.dna, id)
+  };
 }
 
 function displayZombies(ids) {
@@ -526,7 +566,7 @@ function displayZombies(ids) {
   }
 
   for (let id of ids) {
-    getZombieDetails(id)
+    getZombieViewModel(id)
       .then(function (zombie) {
         // if a newer render has started, abort this append
         if (myNonce !== renderNonce) return;
@@ -535,7 +575,7 @@ function displayZombies(ids) {
         $("#zombies").append(`
   <div class="zombie-card">
     <h3>Zombie #${id} — Level ${zombie.level}</h3>
-    <img src="${getZombieImage(zombie.dna,id)}"
+    <img src="${getZombieImagePath(zombie,id)}"
      alt="zombie"
      style="width:100%; max-width:220px; border-radius:8px; margin:8px 0;" />
     <ul>
@@ -543,11 +583,11 @@ function displayZombies(ids) {
       <li><b>DNA:</b> ${zombie.dna}</li>
       <li><b>Wins:</b> ${zombie.winCount}</li>
       <li><b>Losses:</b> ${zombie.lossCount}</li>
-      <li><b>Ready Time:</b> ${zombie.readyTime}</li>
     </ul>
 
     <div class="zombie-actions">
       <button onclick="levelUp(${id})">Level Up</button>
+      <button onclick="feedZombieOnKitty(${id})">Feed On Kitty</button>
     </div>
   </div>
 `);
@@ -556,6 +596,13 @@ function displayZombies(ids) {
         console.error("Error loading zombie details for id", id, err);
       });
   }
+}
+
+async function getAutoKittyId(zombieId) {
+  if (!kittyContract) return null;
+  const kittyCount = Number(await kittyContract.methods.getKittyCount().call());
+  if (!kittyCount) return null;
+  return Number(zombieId) % kittyCount;
 }
 
 function populateActionZombieOptions(ids) {
@@ -602,7 +649,7 @@ function populateActionZombieOptions(ids) {
       return cryptoZombies.methods.feedOnKitty(zombieId, kittyId)
         .send({ from: userAccount })
         .on("receipt", function (receipt) {
-          $("#txStatus").text("Ate a kitty and spawned a new Zombie!");
+          $("#txStatus").text("Fed on a kitty and spawned a new Zombie!");
           getZombiesByOwner(userAccount).then(displayZombies);
         })
         .on("error", function (error) {
@@ -620,6 +667,19 @@ function populateActionZombieOptions(ids) {
         })
         .on("error", function (error) {
           $("#txStatus").text(error);
+        });
+    }
+
+    async function feedZombieOnKitty(zombieId) {
+      const kittyId = await getAutoKittyId(zombieId);
+      if (kittyId === null) {
+        $("#txStatus").text("No local kitties are available.");
+        return;
+      }
+
+      feedOnKitty(zombieId, kittyId)
+        .on("receipt", () => {
+          getZombiesByOwner(userAccount).then(displayZombies);
         });
     }
 
