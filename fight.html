@@ -360,7 +360,7 @@
       return Math.max(chainTimestamp, wallClockTimestamp);
     }
 
-    function ZombieCard({ zombie, selected, onSelect, selectable, currentTime }) {
+    function ZombieCard({ zombie, selected, onSelect, selectable, currentTime, displayNumber, labelPrefix }) {
       const displayName = getDisplayZombieName(zombie);
       const isReady = zombie.readyTime <= currentTime;
       const secondsUntilReady = getSecondsUntilReady(zombie.readyTime, currentTime);
@@ -377,7 +377,7 @@
           <div className="card-top">
             <div>
               <h3 className="card-title">{displayName}</h3>
-              <div className="helper">Zombie #{zombie.id}</div>
+              <div className="helper">{labelPrefix} {displayNumber}</div>
             </div>
             <span className={`tag ${isReady ? "" : "cooldown"}`}>
               {isReady ? "Ready" : "Cooldown"}
@@ -681,13 +681,15 @@
               <div className="helper">Choose an owned zombie that is ready to attack.</div>
               <div className="cards" style={{ marginTop: "14px" }}>
                 {ownedZombies.length === 0 && <div className="helper">No owned zombies found for this wallet.</div>}
-                {ownedZombies.map((zombie) => (
+                {ownedZombies.map((zombie, index) => (
                   <ZombieCard
                     key={zombie.id}
                     zombie={zombie}
                     selected={selectedAttacker?.id === zombie.id}
                     selectable={zombie.readyTime <= currentTime}
                     currentTime={currentTime}
+                    displayNumber={index + 1}
+                    labelPrefix="Your Zombie"
                     onSelect={setSelectedAttacker}
                   />
                 ))}
@@ -699,13 +701,15 @@
               <div className="helper">Choose an enemy zombie that is ready to fight.</div>
               <div className="cards" style={{ marginTop: "14px" }}>
                 {enemyZombies.length === 0 && <div className="helper">No enemy zombies available on this network yet.</div>}
-                {enemyZombies.map((zombie) => (
+                {enemyZombies.map((zombie, index) => (
                   <ZombieCard
                     key={zombie.id}
                     zombie={zombie}
                     selected={selectedTarget?.id === zombie.id}
                     selectable={zombie.readyTime <= currentTime}
                     currentTime={currentTime}
+                    displayNumber={index + 1}
+                    labelPrefix="Enemy Zombie"
                     onSelect={setSelectedTarget}
                   />
                 ))}
@@ -716,10 +720,10 @@
           <section className="panel" style={{ marginTop: "18px" }}>
             <h2>Attack Controls</h2>
             <div className="helper">
-              Selected attacker: {selectedAttacker ? `#${selectedAttacker.id} ${getDisplayZombieName(selectedAttacker)}` : "none"}
+              Selected attacker: {selectedAttacker ? `Your Zombie ${ownedZombies.findIndex((z) => z.id === selectedAttacker.id) + 1} ${getDisplayZombieName(selectedAttacker)}` : "none"}
             </div>
             <div className="helper">
-              Selected target: {selectedTarget ? `#${selectedTarget.id} ${getDisplayZombieName(selectedTarget)}` : "none"}
+              Selected target: {selectedTarget ? `Enemy Zombie ${enemyZombies.findIndex((z) => z.id === selectedTarget.id) + 1} ${getDisplayZombieName(selectedTarget)}` : "none"}
             </div>
 
             <div className="actions-bar">

@@ -565,16 +565,17 @@ function displayZombies(ids) {
     return;
   }
 
-  for (let id of ids) {
+  ids.forEach(function (id, index) {
     getZombieViewModel(id)
       .then(function (zombie) {
         // if a newer render has started, abort this append
         if (myNonce !== renderNonce) return;
         const displayName = getDisplayZombieName(zombie, id);
+        const displayNumber = index + 1;
 
         $("#zombies").append(`
   <div class="zombie-card">
-    <h3>Zombie #${id} — Level ${zombie.level}</h3>
+    <h3>Zombie ${displayNumber} — Level ${zombie.level}</h3>
     <img src="${getZombieImagePath(zombie,id)}"
      alt="zombie"
      style="width:100%; max-width:220px; border-radius:8px; margin:8px 0;" />
@@ -595,7 +596,7 @@ function displayZombies(ids) {
       .catch(err => {
         console.error("Error loading zombie details for id", id, err);
       });
-  }
+  });
 }
 
 async function getAutoKittyId(zombieId) {
@@ -614,16 +615,22 @@ function populateActionZombieOptions(ids) {
     return;
   }
 
-  for (const id of ids) {
+  ids.forEach(function (id, index) {
     const option = document.createElement("option");
     option.value = id;
-    option.textContent = `Zombie #${id}`;
+    option.textContent = `Zombie ${index + 1}`;
     actionZombieIdSelect.appendChild(option);
-  }
+  });
 
   if (ids.includes(previousValue) || ids.includes(Number(previousValue))) {
     actionZombieIdSelect.value = previousValue;
   }
+}
+
+function getSelectedZombieDisplayLabel() {
+  const selectedIndex = actionZombieIdSelect.selectedIndex;
+  if (selectedIndex < 0) return "selected zombie";
+  return `Zombie ${selectedIndex + 1}`;
 }
 
     function createRandomZombie(name) {
@@ -684,11 +691,12 @@ function populateActionZombieOptions(ids) {
     }
 
     function approveZombie(zombieId, approvedAddress) {
+      const zombieLabel = getSelectedZombieDisplayLabel();
       $("#txStatus").text("Approving address to manage your zombie...");
       return cryptoZombies.methods.approve(approvedAddress, zombieId)
         .send({ from: userAccount })
         .on("receipt", function () {
-          $("#txStatus").text(`Approved ${approvedAddress} for Zombie #${zombieId}.`);
+          $("#txStatus").text(`Approved ${approvedAddress} for ${zombieLabel}.`);
         })
         .on("error", function (error) {
           $("#txStatus").text(error.message || String(error));
@@ -696,11 +704,12 @@ function populateActionZombieOptions(ids) {
     }
 
     function transferZombie(zombieId, toAddress) {
+      const zombieLabel = getSelectedZombieDisplayLabel();
       $("#txStatus").text("Transferring zombie...");
       return cryptoZombies.methods.transferFrom(userAccount, toAddress, zombieId)
         .send({ from: userAccount })
         .on("receipt", function () {
-          $("#txStatus").text(`Transferred Zombie #${zombieId} to ${toAddress}.`);
+          $("#txStatus").text(`Transferred ${zombieLabel} to ${toAddress}.`);
           getZombiesByOwner(userAccount).then(displayZombies);
         })
         .on("error", function (error) {
