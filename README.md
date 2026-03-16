@@ -1,7 +1,7 @@
 CryptoZombies DApp – Midterm Project – Team dphi
 Team Members
-Name: Sai Adithya Rao Vykuntam
-Name: Abhishek Sharma 
+Name: Sai Adithya Rao Vykuntam , Email: SaiAdithya@csu.fullerton.edu, CWID: 839054004
+Name: Abhinav Sharma, Email: abhinavsharma@csu.fullerton.edu, CWID: 885378174
 ________________________________________
 Project Description
 This project is a decentralized application (DApp) based on the CryptoZombies tutorial.
@@ -53,12 +53,38 @@ o	Losses
 o	Ready Time
 o	Zombie image
 This provides a clearer and more interactive UI compared to the original simple text output.
+6.	Zombie Battle Arena
+A separate fight interface was added to support zombie-vs-zombie combat.
+The battle page connects to MetaMask, loads owned zombies and enemy zombies, allows selecting an attacker and target, sends the attack transaction, refreshes the zombie list after combat, and shows transaction status and fight results.
+7.	Transfer and Approval UI
+The homepage now supports ERC721-style token actions through the web interface.
+Users can:
+o	Approve another address to manage a selected zombie
+o	Transfer a zombie to another wallet address
+This extends the demo beyond creation and leveling by showing ownership-related contract functionality directly in the frontend.
+8.	Local Kitty Smart Contract Integration
+Instead of relying only on the original Kitty interface, a local KittyContract was added for Ganache testing.
+This contract supports:
+o	Local kitty creation
+o	Kitty ownership tracking
+o	getKitty compatibility with the ZombieFeeding contract
+The migration script deploys this contract locally and wires it into the zombie contract automatically.
+9.	Feed On Kitty Feature with Image Replacement
+Each zombie card now supports feeding on a kitty directly from the frontend.
+After a zombie feeds on a kitty:
+o	The feeding transaction is sent through the local kitty system
+o	A new kitty-hybrid zombie is created using the CryptoZombies feeding logic
+o	The frontend detects kitty-hybrid zombies and swaps their displayed image to a kitty image
+This demonstrates both smart contract integration and frontend state/image updates.
+10.	Improved Multi-Account Testing Support
+The frontend now shows the connected wallet address more clearly and uses account-scoped display numbering for zombies.
+This makes it easier to test ownership, transfer flows, and fight interactions when switching between Ganache accounts in MetaMask.
 ________________________________________
 
 
 
 Conclusion
 The DApp successfully demonstrates interaction between a frontend web interface and Ethereum smart contracts deployed on a local blockchain.
-Additional improvements were implemented to enhance usability, remove hardcoded values, and provide a better user experience.
+Additional improvements were implemented to enhance usability, remove hardcoded values, Feed on Kitty, Zombie battle, Zombie army and provide a better user experience.
 The project showcases the use of Solidity smart contracts, Web3.js integration, and decentralized application development principles.
 
