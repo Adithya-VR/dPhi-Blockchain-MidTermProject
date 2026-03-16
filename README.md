@@ -1,7 +1,7 @@
 CryptoZombies DApp – Midterm Project – Team dphi
 Team Members
-Name: Sai Adithya Rao Vykuntam
-Name: Abhinav Sharma 
+Name: Sai Adithya Rao Vykuntam , Email: SaiAdithya@csu.fullerton.edu, CWID: 839054004
+Name: Abhinav Sharma, Email: abhinavsharma@csu.fullerton.edu, CWID: 885378174
 ________________________________________
 Project Description
 This project is a decentralized application (DApp) based on the CryptoZombies tutorial.
@@ -85,6 +85,6 @@ ________________________________________
 
 Conclusion
 The DApp successfully demonstrates interaction between a frontend web interface and Ethereum smart contracts deployed on a local blockchain.
-Additional improvements were implemented to enhance usability, remove hardcoded values, and provide a better user experience.
+Additional improvements were implemented to enhance usability, remove hardcoded values, Feed on Kitty, Zombie battle, Zombie army and provide a better user experience.
 The project showcases the use of Solidity smart contracts, Web3.js integration, and decentralized application development principles.
 
