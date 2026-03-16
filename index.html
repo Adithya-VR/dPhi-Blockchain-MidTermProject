@@ -11,70 +11,380 @@
   <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
   <!-- <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script> (commented out as added new code to change contract address dynamically) -->
   <style>
-  body { font-family: Arial, sans-serif; padding: 16px; }
+  :root{
+    --bg1:#0b1020;
+    --bg2:#0f1a3a;
+    --card:#0f1630cc;
+    --card2:#101a3aee;
+    --stroke:#2b3a78;
+    --text:#e7ecff;
+    --muted:#a9b5ff;
+    --accent:#8a5cff;
+    --accent2:#22e6a8;
+    --warn:#ffcc66;
+    --danger:#ff4d6d;
+    --shadow: 0 20px 60px rgba(0,0,0,.45);
+  }
 
-  #zombies {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 12px;
+  *{ box-sizing:border-box; }
+  body{
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    margin:0;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 700px at 20% 10%, rgba(138,92,255,.25), transparent 60%),
+      radial-gradient(900px 600px at 90% 30%, rgba(34,230,168,.18), transparent 55%),
+      radial-gradient(700px 500px at 30% 85%, rgba(255,77,109,.12), transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+    min-height:100vh;
+    padding:24px;
+  }
+
+  .app{
+    /* max-width:1100px; */
+    margin:0 auto;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:18px 18px;
+    border:1px solid rgba(43,58,120,.7);
+    background: linear-gradient(180deg, rgba(16,26,58,.85), rgba(12,16,32,.75));
+    border-radius:18px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    position:sticky;
+    top:16px;
+    z-index:10;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:260px;
+  }
+
+  .logo{
+    width:44px; height:44px;
+    border-radius:14px;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(34,230,168,.95), rgba(34,230,168,.05) 55%),
+      radial-gradient(circle at 70% 70%, rgba(138,92,255,.95), rgba(138,92,255,.05) 55%),
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow: 0 10px 30px rgba(138,92,255,.18);
+  }
+
+  .brand h1{
+    font-size:16px;
+    margin:0;
+    letter-spacing:.3px;
+    line-height:1.1;
+  }
+
+  .brand p{
+    margin:3px 0 0;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  #txStatus{
+    flex:1;
+    padding:10px 12px;
+    border-radius:14px;
+    background: rgba(15,22,48,.55);
+    border: 1px solid rgba(43,58,120,.6);
+    color: var(--muted);
+    min-height: 42px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+
+  .dot{
+    width:10px; height:10px;
+    border-radius:999px;
+    background: var(--accent2);
+    box-shadow: 0 0 20px rgba(34,230,168,.7);
+    flex:0 0 auto;
+  }
+
+  .actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  button,
+  .action-link{
+    cursor:pointer;
+    border:1px solid rgba(255,255,255,.14);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:14px;
+    background: rgba(16,26,58,.65);
+    transition: transform .08s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+    font-weight:600;
+    letter-spacing:.2px;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+  }
+
+  button:hover,
+  .action-link:hover{
+    transform: translateY(-1px);
+    border-color: rgba(138,92,255,.55);
+    box-shadow: 0 14px 30px rgba(0,0,0,.35);
+    background: rgba(20,32,70,.70);
+  }
+
+  button:active,
+  .action-link:active{
+    transform: translateY(0);
+    box-shadow:none;
+  }
+
+  .btn-primary{
+    background: linear-gradient(135deg, rgba(138,92,255,.95), rgba(80,210,255,.65));
+    border-color: rgba(138,92,255,.45);
+    box-shadow: 0 12px 34px rgba(138,92,255,.25);
+  }
+
+  .btn-primary:hover{
+    border-color: rgba(255,255,255,.22);
+  }
+
+  .btn-ghost{
+    background: rgba(16,26,58,.35);
+  }
+
+  .btn-warn{
+    background: linear-gradient(135deg, rgba(255,204,102,.95), rgba(255,77,109,.55));
+    border-color: rgba(255,204,102,.45);
+  }
+
+  .grid-wrap{
+    margin-top:16px;
+  }
+
+  .account-banner{
+    margin-bottom:14px;
+    padding:12px 14px;
+    border: 1px solid rgba(43,58,120,.65);
+    border-radius: 16px;
+    background: rgba(16,26,58,.45);
+    color: var(--muted);
+  }
+
+  .account-banner b{
+    color: var(--text);
+  }
+
+  .control-panel{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap:12px;
+    margin-bottom:14px;
+    padding:14px;
+    border: 1px solid rgba(43,58,120,.65);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(15,22,48,.70), rgba(10,14,28,.55));
+    box-shadow: 0 18px 50px rgba(0,0,0,.40);
+  }
+
+  .control-field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .control-field label{
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .control-field input,
+  .control-field select{
+    width:100%;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(16,26,58,.65);
+    color: var(--text);
+  }
+
+  .control-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+  }
+
+  #zombies{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap:14px;
+    margin-top:12px;
+  }
+
+  .zombie-card{
+    border: 1px solid rgba(43,58,120,.65);
+    border-radius: 18px;
+    padding: 14px;
+    background: linear-gradient(180deg, rgba(15,22,48,.70), rgba(10,14,28,.55));
+    box-shadow: 0 18px 50px rgba(0,0,0,.40);
+    backdrop-filter: blur(10px);
+    position:relative;
+    overflow:hidden;
+  }
+
+  .zombie-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(400px 140px at 20% 0%, rgba(138,92,255,.18), transparent 60%),
+      radial-gradient(300px 120px at 90% 20%, rgba(34,230,168,.12), transparent 60%);
+    pointer-events:none;
+  }
+
+  .zombie-card h3{
+    margin:0 0 10px 0;
+    font-size:14px;
+    letter-spacing:.3px;
+    color:var(--text);
+    position:relative;
+    z-index:1;
+  }
+
+  .zombie-card ul{
+    margin:10px 0 0;
+    padding-left:18px;
+    color: var(--muted);
+    position:relative;
+    z-index:1;
+  }
+
+  .zombie-card li b{
+    color: var(--text);
+  }
+
+  .zombie-actions{
     margin-top: 12px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    position:relative;
+    z-index:1;
   }
 
-  .zombie-card {
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    padding: 12px;
-    background: #fff;
+  .zombie-actions button{
+    padding:8px 10px;
+    border-radius:12px;
+    font-size:13px;
+    background: rgba(16,26,58,.55);
   }
 
-  .zombie-card h3 {
-    margin: 0 0 8px 0;
-    font-size: 16px;
+  .footer-note{
+    margin-top:16px;
+    color: rgba(169,181,255,.75);
+    font-size:12px;
+    text-align:center;
   }
 
-  .zombie-card ul {
-    margin: 0;
-    padding-left: 18px;
-  }
-
-  .zombie-actions {
-    margin-top: 10px;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  button {
-    cursor: pointer;
-    padding: 6px 10px;
-  }
-
-  #txStatus {
-    margin-bottom: 10px;
-    padding: 8px;
-    background: #f5f5f5;
-    border-radius: 8px;
+  @media (max-width: 680px){
+    .topbar{
+      flex-direction:column;
+      align-items:stretch;
+    }
+    .brand{ min-width:unset; }
+    .actions{ justify-content:stretch; }
+    button,
+    .action-link{ width:100%; justify-content:center; }
   }
 </style>
 </head>
 
 <body>
-  <div id="txStatus"></div>
-  <div id="zombies"></div>
+  <body>
+  <div class="app">
 
-  <button class="showZombieButton">Show Zombies</button>
-  <button class="createzombieButton">Create Zombie</button>
-  <button class="levelupButton">Level Up</button>
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>CryptoZombies</h1>
+          <p>Ganache DApp • funky undead edition</p>
+        </div>
+      </div>
+
+      <div id="txStatus"><span class="dot"></span><span>Ready.</span></div>
+
+      <div class="actions">
+        <button class="showZombieButton btn-ghost">Show Zombies</button>
+        <button class="createzombieButton btn-primary">Create Zombie</button>
+        <button class="levelupButton btn-warn">Level Up</button>
+        <a href="./fight.html" class="action-link btn-ghost">Fight Arena</a>
+      </div>
+    </div>
+
+    <div class="grid-wrap">
+      <div id="accountBanner" class="account-banner">
+        <b>Connected Wallet:</b> <span id="connectedWalletText">Not connected yet.</span>
+      </div>
+      <div class="control-panel">
+        <div class="control-field">
+          <label for="actionZombieId">Selected Zombie</label>
+          <select id="actionZombieId">
+            <option value="">Load your zombies first</option>
+          </select>
+        </div>
+        <div class="control-field">
+          <label for="approveAddress">Approve Address</label>
+          <input id="approveAddress" type="text" placeholder="0x..." />
+        </div>
+        <div class="control-field">
+          <label for="transferAddress">Transfer To</label>
+          <input id="transferAddress" type="text" placeholder="0x..." />
+        </div>
+        <div class="control-actions">
+          <button id="approveButton" class="btn-ghost">Approve</button>
+          <button id="transferButton" class="btn-warn">Transfer</button>
+        </div>
+      </div>
+      <div id="zombies"></div>
+      <div class="footer-note">
+        Tip: Create a zombie to start building your army. Transfers and events will auto-refresh.
+      </div>
+    </div>
+
+  </div>
 
   <script>
 
     var cryptoZombies;
+    var kittyContract;
     var userAccount;
     var listenersInitialized = false;
     let renderNonce = 0;
     const showZombieButton = document.querySelector('.showZombieButton');
     const createzombieButton = document.querySelector('.createzombieButton');
     const levelupButton = document.querySelector('.levelupButton');
+    const approveButton = document.getElementById('approveButton');
+    const transferButton = document.getElementById('transferButton');
+    const actionZombieIdSelect = document.getElementById('actionZombieId');
+    const approveAddressInput = document.getElementById('approveAddress');
+    const transferAddressInput = document.getElementById('transferAddress');
+    const connectedWalletText = document.getElementById('connectedWalletText');
 
     //function startApp() {
 	
@@ -89,10 +399,13 @@
     // 1) Load Truffle artifact (ABI + deployed address map)
     const res = await fetch("./build/contracts/ZombieOwnership.json");
     const artifact = await res.json();
+    const kittyRes = await fetch("./build/contracts/KittyContract.json");
+    const kittyArtifact = await kittyRes.json();
 
     // 2) Detect current network ID (Ganache usually 5777)
     const networkId = await web3.eth.net.getId();
     const deployed = artifact.networks[networkId];
+    const kittyDeployed = kittyArtifact.networks[networkId];
 
     if (!deployed || !deployed.address) {
       $("#txStatus").text(
@@ -101,9 +414,18 @@
       return;
     }
 
+    if (!kittyDeployed || !kittyDeployed.address) {
+      $("#txStatus").text(
+        `KittyContract not deployed on network ${networkId}. Run: truffle migrate --reset`
+      );
+      return;
+    }
+
     // 3) Create contract instance from ABI + deployed address
     cryptoZombies = new web3.eth.Contract(artifact.abi, deployed.address);
+    kittyContract = new web3.eth.Contract(kittyArtifact.abi, kittyDeployed.address);
 
+    connectedWalletText.textContent = userAccount || "Not connected yet.";
     $("#txStatus").text(`Connected to ZombieOwnership: ${deployed.address}`);
       // Adding listners intialized
       if (!listenersInitialized) {
@@ -191,9 +513,48 @@ function getZombieImage(dna, id) {
   const idx = (Number(dna) + Number(id)) % n;
   //const idx = Number(String(dna).slice(-2)) % n;
   return `images/z${idx}.png`;
-}function displayZombies(ids) {
+}
+
+function getKittyImage(kittyId) {
+  return `images/c${kittyId}.png`;
+}
+
+function getDisplayZombieName(zombie, id) {
+  if (!zombie?.name || zombie.name === "NoName" || zombie.name === "Spawnling") {
+    return `Zombie-${(Number(zombie.readyTime) * 1000) + Number(id)}`;
+  }
+
+  return zombie.name;
+}
+
+function getZombieImagePath(zombie, id) {
+  if (zombie.isKittyHybrid && zombie.fedKittyId !== null && zombie.fedKittyId !== undefined) {
+    return getKittyImage(zombie.fedKittyId);
+  }
+
+  return getZombieImage(zombie.dna, id);
+}
+
+async function getZombieViewModel(id) {
+  const [zombie, isKittyHybrid, fedKittyId] = await Promise.all([
+    getZombieDetails(id),
+    cryptoZombies.methods.zombieIsKittyHybrid(id).call(),
+    cryptoZombies.methods.zombieToSourceKitty(id).call()
+  ]);
+  const hybrid = isKittyHybrid === true || isKittyHybrid === "true";
+
+  return {
+    ...zombie,
+    isKittyHybrid: hybrid,
+    fedKittyId: hybrid ? Number(fedKittyId) : null,
+    imagePath: hybrid ? getKittyImage(Number(fedKittyId)) : getZombieImage(zombie.dna, id)
+  };
+}
+
+function displayZombies(ids) {
   // bump nonce for this render run
   const myNonce = ++renderNonce;
+  populateActionZombieOptions(ids);
 
   // clear existing cards before rendering
   $("#zombies").empty();
@@ -204,28 +565,30 @@ function getZombieImage(dna, id) {
     return;
   }
 
-  for (let id of ids) {
-    getZombieDetails(id)
+  ids.forEach(function (id, index) {
+    getZombieViewModel(id)
       .then(function (zombie) {
         // if a newer render has started, abort this append
         if (myNonce !== renderNonce) return;
+        const displayName = getDisplayZombieName(zombie, id);
+        const displayNumber = index + 1;
 
         $("#zombies").append(`
   <div class="zombie-card">
-    <h3>Zombie #${id} — Level ${zombie.level}</h3>
-    <img src="${getZombieImage(zombie.dna,id)}"
+    <h3>Zombie ${displayNumber} — Level ${zombie.level}</h3>
+    <img src="${getZombieImagePath(zombie,id)}"
      alt="zombie"
      style="width:100%; max-width:220px; border-radius:8px; margin:8px 0;" />
     <ul>
-      <li><b>Name:</b> ${zombie.name}</li>
+      <li><b>Name:</b> ${displayName}</li>
       <li><b>DNA:</b> ${zombie.dna}</li>
       <li><b>Wins:</b> ${zombie.winCount}</li>
       <li><b>Losses:</b> ${zombie.lossCount}</li>
-      <li><b>Ready Time:</b> ${zombie.readyTime}</li>
     </ul>
 
     <div class="zombie-actions">
       <button onclick="levelUp(${id})">Level Up</button>
+      <button onclick="feedZombieOnKitty(${id})">Feed On Kitty</button>
     </div>
   </div>
 `);
@@ -233,7 +596,41 @@ function getZombieImage(dna, id) {
       .catch(err => {
         console.error("Error loading zombie details for id", id, err);
       });
+  });
+}
+
+async function getAutoKittyId(zombieId) {
+  if (!kittyContract) return null;
+  const kittyCount = Number(await kittyContract.methods.getKittyCount().call());
+  if (!kittyCount) return null;
+  return Number(zombieId) % kittyCount;
+}
+
+function populateActionZombieOptions(ids) {
+  const previousValue = actionZombieIdSelect.value;
+  actionZombieIdSelect.innerHTML = "";
+
+  if (!ids || !ids.length) {
+    actionZombieIdSelect.innerHTML = '<option value="">No zombies available</option>';
+    return;
   }
+
+  ids.forEach(function (id, index) {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = `Zombie ${index + 1}`;
+    actionZombieIdSelect.appendChild(option);
+  });
+
+  if (ids.includes(previousValue) || ids.includes(Number(previousValue))) {
+    actionZombieIdSelect.value = previousValue;
+  }
+}
+
+function getSelectedZombieDisplayLabel() {
+  const selectedIndex = actionZombieIdSelect.selectedIndex;
+  if (selectedIndex < 0) return "selected zombie";
+  return `Zombie ${selectedIndex + 1}`;
 }
 
     function createRandomZombie(name) {
@@ -259,7 +656,7 @@ function getZombieImage(dna, id) {
       return cryptoZombies.methods.feedOnKitty(zombieId, kittyId)
         .send({ from: userAccount })
         .on("receipt", function (receipt) {
-          $("#txStatus").text("Ate a kitty and spawned a new Zombie!");
+          $("#txStatus").text("Fed on a kitty and spawned a new Zombie!");
           getZombiesByOwner(userAccount).then(displayZombies);
         })
         .on("error", function (error) {
@@ -277,6 +674,46 @@ function getZombieImage(dna, id) {
         })
         .on("error", function (error) {
           $("#txStatus").text(error);
+        });
+    }
+
+    async function feedZombieOnKitty(zombieId) {
+      const kittyId = await getAutoKittyId(zombieId);
+      if (kittyId === null) {
+        $("#txStatus").text("No local kitties are available.");
+        return;
+      }
+
+      feedOnKitty(zombieId, kittyId)
+        .on("receipt", () => {
+          getZombiesByOwner(userAccount).then(displayZombies);
+        });
+    }
+
+    function approveZombie(zombieId, approvedAddress) {
+      const zombieLabel = getSelectedZombieDisplayLabel();
+      $("#txStatus").text("Approving address to manage your zombie...");
+      return cryptoZombies.methods.approve(approvedAddress, zombieId)
+        .send({ from: userAccount })
+        .on("receipt", function () {
+          $("#txStatus").text(`Approved ${approvedAddress} for ${zombieLabel}.`);
+        })
+        .on("error", function (error) {
+          $("#txStatus").text(error.message || String(error));
+        });
+    }
+
+    function transferZombie(zombieId, toAddress) {
+      const zombieLabel = getSelectedZombieDisplayLabel();
+      $("#txStatus").text("Transferring zombie...");
+      return cryptoZombies.methods.transferFrom(userAccount, toAddress, zombieId)
+        .send({ from: userAccount })
+        .on("receipt", function () {
+          $("#txStatus").text(`Transferred ${zombieLabel} to ${toAddress}.`);
+          getZombiesByOwner(userAccount).then(displayZombies);
+        })
+        .on("error", function (error) {
+          $("#txStatus").text(error.message || String(error));
         });
     }
 
@@ -304,6 +741,7 @@ function getZombieImage(dna, id) {
            await startApp() //adding await here for the newly added dyanmic address vode, if that code is removed remove await here.
         } catch (error) {
             // User denied account access...
+            $("#txStatus").text(error.message || String(error));
         }
     }
     // Legacy dapp browsers...
@@ -316,6 +754,7 @@ function getZombieImage(dna, id) {
     // Non-dapp browsers...
     else {
         console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+        connectedWalletText.textContent = "MetaMask not detected.";
     }
    });
  
@@ -334,13 +773,15 @@ function getZombieImage(dna, id) {
 
   //  }) 
 
-   ethereum.on('accountsChanged', (accounts) => {
-       window.location.reload();
-   });
+   if (window.ethereum) {
+     ethereum.on('accountsChanged', () => {
+         window.location.reload();
+     });
 
-   ethereum.on('chainChanged', (chainId) => {
-       window.location.reload(); 
-   });  
+     ethereum.on('chainChanged', () => {
+         window.location.reload(); 
+     });
+   }
 
  
     createzombieButton.addEventListener('click', () => {
@@ -358,6 +799,22 @@ function getZombieImage(dna, id) {
   if (!ids.length) return $("#txStatus").text("No zombies to level up");
   const lastId = ids[ids.length - 1];
   levelUp(lastId).on("receipt", () => getZombiesByOwner(userAccount).then(displayZombies));
+});
+
+    approveButton.addEventListener('click', async () => {
+  const zombieId = actionZombieIdSelect.value;
+  const approvedAddress = approveAddressInput.value.trim();
+  if (!zombieId) return $("#txStatus").text("Select a zombie to approve.");
+  if (!web3.utils.isAddress(approvedAddress)) return $("#txStatus").text("Enter a valid approval address.");
+  approveZombie(zombieId, approvedAddress);
+});
+
+    transferButton.addEventListener('click', async () => {
+  const zombieId = actionZombieIdSelect.value;
+  const toAddress = transferAddressInput.value.trim();
+  if (!zombieId) return $("#txStatus").text("Select a zombie to transfer.");
+  if (!web3.utils.isAddress(toAddress)) return $("#txStatus").text("Enter a valid transfer address.");
+  transferZombie(zombieId, toAddress);
 });
 
 

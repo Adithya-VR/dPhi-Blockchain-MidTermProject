@@ -14,12 +14,14 @@ contract ZombieAttack is ZombieHelper {
   function attack(uint _zombieId, uint _targetId) external onlyOwnerOf(_zombieId) {
     Zombie storage myZombie = zombies[_zombieId];
     Zombie storage enemyZombie = zombies[_targetId];
+    require(_zombieId != _targetId, "Cannot attack the same zombie");
+    require(_isReady(enemyZombie), "Target zombie is on cooldown");
     uint rand = randMod(100);
     if (rand <= attackVictoryProbability) {
       myZombie.winCount = myZombie.winCount.add(1);
       myZombie.level = myZombie.level.add(1);
       enemyZombie.lossCount = enemyZombie.lossCount.add(1);
-      feedAndMultiply(_zombieId, enemyZombie.dna, "zombie");
+      feedAndMultiply(_zombieId, enemyZombie.dna, "zombie", 0);
     } else {
       myZombie.lossCount = myZombie.lossCount.add(1);
       enemyZombie.winCount = enemyZombie.winCount.add(1);
